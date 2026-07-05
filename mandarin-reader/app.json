@@ -1,0 +1,37 @@
+{
+  "expo": {
+    "name": "读中文 Mandarin Reader",
+    "slug": "mandarin-reader",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "mandarinreader",
+    "userInterfaceStyle": "light",
+    "icon": "./assets/icon.png",
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "android": {
+      "package": "com.yourname.mandarinreader",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#F6F1E7"
+      }
+    },
+    "ios": {
+      "bundleIdentifier": "com.yourname.mandarinreader",
+      "supportsTablet": false
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#F6F1E7"
+        }
+      ]
+    ]
+  }
+}
