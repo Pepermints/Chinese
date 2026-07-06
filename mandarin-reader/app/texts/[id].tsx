@@ -78,7 +78,7 @@ export default function ReadingScreen() {
     <ScreenFrame title={text.title} showBackButton onBack={() => router.back()}>
       <FlashList
         data={paragraphs}
-        estimatedItemSize={80}
+        //estimatedItemSize={80}
         keyExtractor={(_, i) => String(i)}
         contentContainerStyle={{ padding: 16 }}
         renderItem={({ item }) => (
