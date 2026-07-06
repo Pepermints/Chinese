@@ -9,9 +9,10 @@ to know: SDK v54 (not the latest v57 because app Expo Go on android does not hav
 
 todo now: make the code of the app work
 
-
+```bash
 cd mandarin-reader/
 npx expo start --tunnel
+```
 (on phone) on Expo go: scan QR code
 
 

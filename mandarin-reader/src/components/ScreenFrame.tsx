@@ -1,7 +1,7 @@
 import React from "react";
 import { Pressable, SafeAreaView, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
-import { ArrowLeft, House, Square } from "lucide-react-native";
+import { ArrowLeft, House } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { theme } from "../lib/theme";
 
@@ -74,9 +74,6 @@ export function ScreenFrame({
             </Pressable>
             <Pressable onPress={() => router.replace("/")} style={styles.navButton}>
               <House size={20} color={theme.ink} />
-            </Pressable>
-            <Pressable onPress={() => router.push("/texts")} style={styles.navButton}>
-              <Square size={20} color={theme.ink} />
             </Pressable>
           </View>
         )}
