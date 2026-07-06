@@ -3,8 +3,7 @@ import { Pressable, Text, View } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import { router, useLocalSearchParams } from "expo-router";
 import { theme } from "../../src/lib/theme";
-import { getText, getNoPinyinChars, SavedText, NameTag } from "../../src/db/database";
-import { getPinyinForText, PinyinChar } from "../../src/lib/pinyin";
+import { getText, getNoPinyinChars, setNoPinyinChars as saveNoPinyinChars, SavedText, NameTag } from "../../src/db/database";import { getPinyinForText, PinyinChar } from "../../src/lib/pinyin";
 import { CharacterCell } from "../../src/components/CharacterCell";
 import { PinyinPopup } from "../../src/components/PinyinPopup";
 import { ScreenFrame } from "../../src/components/ScreenFrame";
@@ -15,7 +14,6 @@ export default function ReadingScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [text, setText] = useState<SavedText | null>(null);
   const [noPinyinChars, setNoPinyinChars] = useState<string[]>([]);
-  const [overrides, setOverrides] = useState<Record<number, boolean>>({});
   const [popup, setPopup] = useState<{ index: number; pc: PinyinChar } | null>(
     null
   );
@@ -70,9 +68,8 @@ export default function ReadingScreen() {
     });
   }, [text, pinyinChars, highlight]);
 
-  function isVisible(pc: PinyinChar, index: number) {
-    if (overrides[index] !== undefined) return overrides[index];
-    return !noPinyinChars.includes(pc.char);
+  function isVisible(pc: PinyinChar) {
+  return !noPinyinChars.includes(pc.char);
   }
 
   if (!text) return null;
@@ -99,7 +96,7 @@ export default function ReadingScreen() {
                   char={pc.char}
                   py={pc.py}
                   tone={pc.tone}
-                  visible={!!pc.py && isVisible(pc, globalIndex)}
+                  visible={!!pc.py && isVisible(pc)}
                   highlightBg={hl?.bg}
                   highlightFg={hl?.fg}
                   roundLeft={!!hl && hl !== prevHl}
@@ -117,15 +114,16 @@ export default function ReadingScreen() {
         char={popup?.pc.char ?? null}
         py={popup?.pc.py ?? null}
         tone={popup?.pc.tone ?? 0}
-        isVisible={popup ? isVisible(popup.pc, popup.index) : true}
-        onToggle={() => {
+        onAddToNoPinyin={async () => {
           if (!popup) return;
-          setOverrides((o) => ({
-            ...o,
-            [popup.index]: !isVisible(popup.pc, popup.index),
-          }));
-          setPopup(null);
-        }}
+          const char = popup.pc.char;
+          if (!noPinyinChars.includes(char)) {
+          const next = [...noPinyinChars, char];
+          setNoPinyinChars(next);
+          await saveNoPinyinChars(next);
+        }
+        setPopup(null);
+    }}
         onClose={() => setPopup(null)}
       />
     </ScreenFrame>

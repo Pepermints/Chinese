@@ -7,8 +7,7 @@ type Props = {
   char: string | null;
   py: string | null;
   tone: number;
-  isVisible: boolean; // is pinyin currently shown for this specific character instance
-  onToggle: () => void;
+  onAddToNoPinyin: () => void;
   onClose: () => void;
 };
 
@@ -17,8 +16,7 @@ export function PinyinPopup({
   char,
   py,
   tone,
-  isVisible,
-  onToggle,
+  onAddToNoPinyin,
   onClose,
 }: Props) {
   return (
@@ -65,13 +63,11 @@ export function PinyinPopup({
               >
                 {py ?? "—"}
               </Text>
-              <Text style={{ fontSize: 12, color: theme.inkSoft }}>
-                {isVisible ? "Pinyin being displayed" : "Pinyin hidden"}
-              </Text>
             </View>
           </View>
+
           <Pressable
-            onPress={onToggle}
+            onPress={onAddToNoPinyin}
             style={{
               backgroundColor: theme.seal,
               borderRadius: 16,
@@ -79,15 +75,17 @@ export function PinyinPopup({
               marginBottom: 8,
             }}
           >
-            <Text
-              style={{ textAlign: "center", color: "white", fontWeight: "600" }}
-            >
-              {isVisible ? "hide pinyin" : "show pinyin"}
+            <Text style={{ textAlign: "center", color: "white", fontWeight: "600" }}>
+              Hide pinyin
+            </Text>
+            <Text style={{ textAlign: "center", color: "rgba(255,255,255,0.7)", fontSize: 12, marginTop: 2 }}>
+              Adds to 免拼音字 list
             </Text>
           </Pressable>
+
           <Pressable onPress={onClose} style={{ paddingVertical: 14 }}>
             <Text style={{ textAlign: "center", color: theme.inkSoft }}>
-              cancel
+              Cancel
             </Text>
           </Pressable>
         </Pressable>
