@@ -11,14 +11,14 @@
       "favicon": "./assets/favicon.png"
     },
     "android": {
-      "package": "com.yourname.mandarinreader",
+      "package": "com.pepermints.mandarinreader",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#F6F1E7"
       }
     },
     "ios": {
-      "bundleIdentifier": "com.yourname.mandarinreader",
+      "bundleIdentifier": "com.pepermints.mandarinreader",
       "supportsTablet": false
     },
     "plugins": [
@@ -32,6 +32,12 @@
           "backgroundColor": "#F6F1E7"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "7d1c54a1-a89f-4d25-ae11-10cbdd6c3637"
+      }
+    }
   }
 }
