@@ -15,6 +15,46 @@ npx expo start --tunnel
 ```
 (on phone) on Expo go: scan QR code
 
+to build android
+```bash
+npx expo prebuild --platform android --clean //claude says not to do that after the first one?
+eas build --platform android --profile preview
+```
+it will ask for eas login (which is expo.dev logins): t.boulic@gmail.com and expo.dev password
+
+then go to link provided, download .apk and install on phone
+
+
+
+## how to debug
+go to folder containing adb.exe
+type into adress bar: ``powershell`` -- it will open powershell already in this folder
+
+(the phone should be pre-configured: 1) in developper mode, 2) developer options with USB debugging 3) plug phone in and allow when asked if "Allow USB debugging")
+
+then in powershell, type:
+```bash
+ .\adb devices
+```
+
+Result should be like:
+List of devices attached
+R58Xxxxxxxxxxx    device
+
+on phone, go to right page of app (right before clicking on app)
+
+in powershell: 
+```bash
+.\adb logcat *:E 2>$null
+```
+phone: immediately type on app to open
+
+powershell: immediately CTRL C 
+
+then search for error :
+--------- beginning of crash
+07-08 22:19:44.219 32573  6545 E AndroidRuntime: FATAL EXCEPTION: pool-2-thread-1
+07-08 22:19:44.219 32573  6545 E AndroidRuntime: Process: com.pepermints.mandarinreader, PID: 32573
 
 
 ## 0. installation and steps to get to production

@@ -13,6 +13,8 @@ This means that:
 
 ## Main needed improvements
 
+- book vocabulary is too difficult. I need a dictionnary
+- UI: pinyin is cut off 
 - book as a concept: container of texts that are ordered. 
     - Names highlighted per book (not text). 
     - Continue reading — opens the book directly to where you left off
