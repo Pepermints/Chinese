@@ -57,6 +57,15 @@ then search for error :
 07-08 22:19:44.219 32573  6545 E AndroidRuntime: Process: com.pepermints.mandarinreader, PID: 32573
 
 
+## how to connect to Claude
+```bash
+claude
+```
+
+use the url and copy paste it. then use the code given in the webaoge and copy paste it back 
+
+
+
 ## 0. installation and steps to get to production
 
 ## 1. Scaffold the project in your Codespace - done
