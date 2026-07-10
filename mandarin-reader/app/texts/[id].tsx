@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Pressable, Text, TextInput, View } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import { router, useLocalSearchParams } from "expo-router";
-import { theme } from "../../src/lib/theme";
-import { getText, getNoPinyinChars, setNoPinyinChars as saveNoPinyinChars, SavedText, NameTag } from "../../src/db/database";import { getPinyinForText, PinyinChar } from "../../src/lib/pinyin";
+import { Tag, X } from "lucide-react-native";
+import { theme, NAME_COLORS } from "../../src/lib/theme";
+import { getText, saveText, getNoPinyinChars, setNoPinyinChars as saveNoPinyinChars, SavedText, NameTag } from "../../src/db/database";import { getPinyinForText, PinyinChar } from "../../src/lib/pinyin";
 import { CharacterCell } from "../../src/components/CharacterCell";
 import { PinyinPopup } from "../../src/components/PinyinPopup";
 import { ScreenFrame } from "../../src/components/ScreenFrame";
@@ -17,6 +18,8 @@ export default function ReadingScreen() {
   const [popup, setPopup] = useState<{ index: number; pc: PinyinChar } | null>(
     null
   );
+  const [namesBarOpen, setNamesBarOpen] = useState(false);
+  const [nameInput, setNameInput] = useState("");
 
   useEffect(() => {
     getText(id).then(setText);
@@ -72,11 +75,131 @@ export default function ReadingScreen() {
   return !noPinyinChars.includes(pc.char);
   }
 
+  function addName() {
+    if (!text) return;
+    const n = nameInput.trim();
+    if (!n) return;
+    if (text.names.some((x) => x.name === n)) {
+      setNameInput("");
+      return;
+    }
+    const nextText = {
+      ...text,
+      names: [
+        ...text.names,
+        { name: n, color: NAME_COLORS[text.names.length % NAME_COLORS.length] },
+      ],
+    };
+    setText(nextText);
+    saveText(nextText);
+    setNameInput("");
+  }
+
+  function removeName(i: number) {
+    if (!text) return;
+    const nextText = { ...text, names: text.names.filter((_, idx) => idx !== i) };
+    setText(nextText);
+    saveText(nextText);
+  }
+
   if (!text) return null;
 
   return (
-    <ScreenFrame title={text.title} showBackButton onBack={() => router.back()}>
+    <ScreenFrame
+      title={text.title}
+      showBackButton
+      onBack={() => router.back()}
+      rightAction={
+        <Pressable
+          onPress={() => setNamesBarOpen((o) => !o)}
+          style={{ padding: 8 }}
+        >
+          <Tag
+            size={20}
+            color={
+              namesBarOpen || text.names.length > 0 ? theme.seal : theme.line
+            }
+          />
+        </Pressable>
+      }
+    >
+      {namesBarOpen && (
+        <View
+          style={{
+            paddingHorizontal: 16,
+            paddingTop: 12,
+            paddingBottom: 4,
+            borderBottomWidth: 1,
+            borderBottomColor: theme.line,
+          }}
+        >
+          <View style={{ flexDirection: "row", gap: 8, marginBottom: 8 }}>
+            <TextInput
+              value={nameInput}
+              onChangeText={setNameInput}
+              onSubmitEditing={addName}
+              placeholder="例如：王芳"
+              style={{
+                flex: 1,
+                backgroundColor: theme.card,
+                borderWidth: 1,
+                borderColor: theme.line,
+                borderRadius: 12,
+                paddingHorizontal: 12,
+                paddingVertical: 10,
+                color: theme.ink,
+                fontSize: 14,
+              }}
+            />
+            <Pressable
+              onPress={addName}
+              style={{
+                backgroundColor: theme.jade,
+                borderRadius: 12,
+                paddingHorizontal: 16,
+                justifyContent: "center",
+              }}
+            >
+              <Text style={{ color: "white" }}>添加</Text>
+            </Pressable>
+          </View>
+
+          {text.names.length > 0 && (
+            <View
+              style={{
+                flexDirection: "row",
+                flexWrap: "wrap",
+                gap: 8,
+                paddingBottom: 8,
+              }}
+            >
+              {text.names.map((n, i) => (
+                <View
+                  key={i}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 6,
+                    backgroundColor: n.color.bg,
+                    paddingHorizontal: 10,
+                    paddingVertical: 6,
+                    borderRadius: 999,
+                  }}
+                >
+                  <Text style={{ color: n.color.fg, fontSize: 12 }}>
+                    {n.name}
+                  </Text>
+                  <Pressable onPress={() => removeName(i)}>
+                    <X size={12} color={n.color.fg} />
+                  </Pressable>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+      )}
       <FlashList
+        style={{ flex: 1 }}
         data={paragraphs}
         //estimatedItemSize={80}
         keyExtractor={(_, i) => String(i)}

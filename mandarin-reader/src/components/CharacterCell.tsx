@@ -42,9 +42,9 @@ export function CharacterCell({
       <Text
         style={{
           fontSize: 10,
-          lineHeight: 13,
-          height: 13,
+          lineHeight: 16,
           fontWeight: "600",
+          marginBottom: 1,
           color: py ? theme.toneColor(tone) : "transparent",
         }}
       >

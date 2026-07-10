@@ -15,7 +15,8 @@ npx expo start --tunnel
 ```
 (on phone) on Expo go: scan QR code
 
-to build android
+
+## to build android apk
 ```bash
 npx expo prebuild --platform android --clean //claude says not to do that after the first one?
 eas build --platform android --profile preview
