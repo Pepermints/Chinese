@@ -1,7 +1,7 @@
 import React from "react";
 import { Text, View, Pressable } from "react-native";
 import { Link } from "expo-router";
-import { BookOpen, Ban } from "lucide-react-native";
+import { BookOpen, Ban, BookMarked } from "lucide-react-native";
 import { theme } from "../src/lib/theme";
 import { ScreenFrame } from "../src/components/ScreenFrame";
 
@@ -28,6 +28,15 @@ export default function MenuScreen() {
             iconBg={theme.jadeSoft}
             title="免拼音字"
             subtitle="Characters that don't need pinyin"
+          />
+        </Link>
+
+        <Link href="/vocabulary" asChild>
+          <NavCard
+            icon={<BookMarked size={20} color={theme.ochre} />}
+            iconBg={theme.ochreSoft}
+            title="我的词语"
+            subtitle="Words saved while reading"
           />
         </Link>
       </View>

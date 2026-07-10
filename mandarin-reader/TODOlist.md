@@ -13,8 +13,11 @@ This means that:
 
 ## Main needed improvements
 
+Bug: can't scroll on no-pinyin page 
+
 - book vocabulary is too difficult. I need a dictionnary
-- UI: pinyin is cut off 
+    - tap to translate works. to do: "save word" button doesn't do anything yet - think about where to save?
+    - create cards for spaced repetition?
 - book as a concept: container of texts that are ordered. 
     - Names highlighted per book (not text). 
     - Continue reading — opens the book directly to where you left off

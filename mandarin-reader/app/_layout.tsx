@@ -38,6 +38,7 @@ export default function RootLayout() {
       <Stack.Screen name="texts/add" />
       <Stack.Screen name="texts/[id]" />
       <Stack.Screen name="no-pinyin" />
+      <Stack.Screen name="vocabulary" />
     </Stack>
   );
 }

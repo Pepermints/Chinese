@@ -4,9 +4,10 @@ import { FlashList } from "@shopify/flash-list";
 import { router, useLocalSearchParams } from "expo-router";
 import { Tag, X } from "lucide-react-native";
 import { theme, NAME_COLORS } from "../../src/lib/theme";
-import { getText, saveText, getNoPinyinChars, setNoPinyinChars as saveNoPinyinChars, SavedText, NameTag } from "../../src/db/database";import { getPinyinForText, PinyinChar } from "../../src/lib/pinyin";
+import { getText, saveText, getNoPinyinChars, setNoPinyinChars as saveNoPinyinChars, lookupWordAt, saveWord, SavedText, NameTag, DictionaryEntry } from "../../src/db/database";import { getPinyinForText, PinyinChar } from "../../src/lib/pinyin";
 import { CharacterCell } from "../../src/components/CharacterCell";
 import { PinyinPopup } from "../../src/components/PinyinPopup";
+import { DefinitionPopup } from "../../src/components/DefinitionPopup";
 import { ScreenFrame } from "../../src/components/ScreenFrame";
 
 type HighlightColor = { bg: string; fg: string } | null;
@@ -20,6 +21,12 @@ export default function ReadingScreen() {
   );
   const [namesBarOpen, setNamesBarOpen] = useState(false);
   const [nameInput, setNameInput] = useState("");
+  const [definitionPopup, setDefinitionPopup] = useState<{ word: string } | null>(
+    null
+  );
+  const [definitionData, setDefinitionData] = useState<
+    (DictionaryEntry & { word: string }) | null
+  >(null);
 
   useEffect(() => {
     getText(id).then(setText);
@@ -59,16 +66,24 @@ export default function ReadingScreen() {
 
   const paragraphs = useMemo(() => {
     if (!text) return [] as { chars: PinyinChar[]; hl: HighlightColor[]; startIndex: number }[];
-    const rawParagraphs = text.content.split(/\n+/);
-    let cursor = 0;
-    return rawParagraphs.map((p) => {
-      const len = Array.from(p).length;
-      const chars = pinyinChars.slice(cursor, cursor + len);
-      const hl = highlight.slice(cursor, cursor + len);
-      const startIndex = cursor;
-      cursor += len;
-      return { chars, hl, startIndex };
-    });
+    // Walk the character array directly (instead of string-splitting on \n)
+    // so paragraph slices stay aligned with pinyinChars/highlight, which are
+    // indexed against every character in content including newlines.
+    const allChars = Array.from(text.content);
+    const result: { chars: PinyinChar[]; hl: HighlightColor[]; startIndex: number }[] = [];
+    let i = 0;
+    while (i < allChars.length) {
+      while (i < allChars.length && allChars[i] === "\n") i++;
+      if (i >= allChars.length) break;
+      const startIndex = i;
+      while (i < allChars.length && allChars[i] !== "\n") i++;
+      result.push({
+        chars: pinyinChars.slice(startIndex, i),
+        hl: highlight.slice(startIndex, i),
+        startIndex,
+      });
+    }
+    return result;
   }, [text, pinyinChars, highlight]);
 
   function isVisible(pc: PinyinChar) {
@@ -100,6 +115,13 @@ export default function ReadingScreen() {
     const nextText = { ...text, names: text.names.filter((_, idx) => idx !== i) };
     setText(nextText);
     saveText(nextText);
+  }
+
+  async function handleCharPress(globalIndex: number) {
+    if (!text) return;
+    const entry = await lookupWordAt(text.content, globalIndex);
+    setDefinitionData(entry);
+    setDefinitionPopup({ word: entry?.word ?? "" });
   }
 
   if (!text) return null;
@@ -224,6 +246,7 @@ export default function ReadingScreen() {
                   highlightFg={hl?.fg}
                   roundLeft={!!hl && hl !== prevHl}
                   roundRight={!!hl && hl !== nextHl}
+                  onPress={() => handleCharPress(globalIndex)}
                   onLongPress={() => setPopup({ index: globalIndex, pc })}
                 />
               );
@@ -248,6 +271,26 @@ export default function ReadingScreen() {
         setPopup(null);
     }}
         onClose={() => setPopup(null)}
+      />
+
+      <DefinitionPopup
+        visible={!!definitionPopup}
+        word={definitionData?.word ?? definitionPopup?.word ?? null}
+        pinyin={definitionData?.pinyin ?? null}
+        definitions={definitionData?.definitions ?? null}
+        onClose={() => setDefinitionPopup(null)}
+        onSaveWord={async () => {
+          if (!definitionPopup || !definitionData || !text) return;
+          await saveWord({
+            id: definitionPopup.word + "_" + text.id,
+            word: definitionPopup.word,
+            pinyin: definitionData.pinyin ?? null,
+            definitions: definitionData.definitions ?? null,
+            source_text_id: text.id,
+            source_text_title: text.title,
+            saved_at: new Date().toISOString(),
+          });
+        }}
       />
     </ScreenFrame>
   );

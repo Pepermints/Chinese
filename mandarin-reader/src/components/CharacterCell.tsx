@@ -11,6 +11,7 @@ type Props = {
   highlightFg?: string;
   roundLeft?: boolean;
   roundRight?: boolean;
+  onPress?: () => void;
   onLongPress: () => void;
 };
 
@@ -23,10 +24,12 @@ export function CharacterCell({
   highlightFg,
   roundLeft,
   roundRight,
+  onPress,
   onLongPress,
 }: Props) {
   return (
     <Pressable
+      onPress={onPress}
       onLongPress={onLongPress}
       delayLongPress={450}
       style={{

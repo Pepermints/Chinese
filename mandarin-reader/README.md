@@ -18,14 +18,13 @@ npx expo start --tunnel
 
 ## to build android apk
 ```bash
-npx expo prebuild --platform android --clean //claude says not to do that after the first one?
 eas build --platform android --profile preview
 ```
 it will ask for eas login (which is expo.dev logins): t.boulic@gmail.com and expo.dev password
 
 then go to link provided, download .apk and install on phone
 
-
+(needed first time  npx expo prebuild --platform android --clean //claude says not to do that after the first one?)
 
 ## how to debug
 go to folder containing adb.exe
