@@ -3,11 +3,18 @@ import { CEDICT_TSV } from "../data/cedict";
 
 export type NameTag = { name: string; color: { bg: string; fg: string } };
 
+export type Book = {
+  id: string;
+  title: string;
+  names: NameTag[];
+  createdAt: string;
+};
+
 export type SavedText = {
   id: string;
   title: string;
   content: string; // always simplified — conversion happens on save
-  names: NameTag[];
+  book_id: string;
   createdAt: string;
 };
 
@@ -25,6 +32,7 @@ export type VocabEntry = {
   definitions: string | null;
   source_text_id: string;
   source_text_title: string;
+  source_book_title: string;
   saved_at: string;
 };
 
@@ -40,11 +48,17 @@ function getDb() {
 export async function initDatabase() {
   const db = await getDb();
   await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS books (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL UNIQUE,
+      names TEXT NOT NULL DEFAULT '[]',
+      created_at TEXT NOT NULL
+    );
     CREATE TABLE IF NOT EXISTS texts (
       id TEXT PRIMARY KEY,
       title TEXT NOT NULL,
       content TEXT NOT NULL,
-      names TEXT NOT NULL,
+      book_id TEXT NOT NULL REFERENCES books(id),
       created_at TEXT NOT NULL
     );
     CREATE TABLE IF NOT EXISTS settings (
@@ -66,6 +80,7 @@ export async function initDatabase() {
       definitions TEXT,
       source_text_id TEXT NOT NULL,
       source_text_title TEXT NOT NULL,
+      source_book_title TEXT NOT NULL,
       saved_at TEXT NOT NULL
     );
   `);
@@ -146,44 +161,142 @@ export async function lookupWordAt(
   return null;
 }
 
-export async function listTexts(): Promise<SavedText[]> {
+export async function listBooks(): Promise<Book[]> {
   const db = await getDb();
   const rows = await db.getAllAsync<any>(
-    "SELECT * FROM texts ORDER BY created_at DESC"
+    "SELECT * FROM books ORDER BY title COLLATE NOCASE ASC"
+  );
+  return rows.map(rowToBook);
+}
+
+export async function getBook(id: string): Promise<Book | null> {
+  const db = await getDb();
+  const row = await db.getFirstAsync<any>("SELECT * FROM books WHERE id = ?", [
+    id,
+  ]);
+  return row ? rowToBook(row) : null;
+}
+
+export async function getBookByTitle(title: string): Promise<Book | null> {
+  const db = await getDb();
+  const row = await db.getFirstAsync<any>(
+    "SELECT * FROM books WHERE title = ? COLLATE NOCASE",
+    [title]
+  );
+  return row ? rowToBook(row) : null;
+}
+
+export async function saveBook(book: Book): Promise<void> {
+  const db = await getDb();
+  await db.runAsync(
+    `INSERT OR REPLACE INTO books (id, title, names, created_at) VALUES (?, ?, ?, ?)`,
+    [book.id, book.title, JSON.stringify(book.names), book.createdAt]
+  );
+}
+
+export async function updateBookNames(
+  bookId: string,
+  names: NameTag[]
+): Promise<void> {
+  const db = await getDb();
+  await db.runAsync("UPDATE books SET names = ? WHERE id = ?", [
+    JSON.stringify(names),
+    bookId,
+  ]);
+}
+
+export async function updateBookTitle(
+  bookId: string,
+  title: string
+): Promise<void> {
+  const db = await getDb();
+  const existing = await db.getFirstAsync<any>(
+    "SELECT id FROM books WHERE title = ? COLLATE NOCASE AND id != ?",
+    [title, bookId]
+  );
+  if (existing) {
+    throw new Error("A book with that name already exists");
+  }
+  await db.runAsync("UPDATE books SET title = ? WHERE id = ?", [title, bookId]);
+}
+
+export async function deleteBook(id: string): Promise<void> {
+  const db = await getDb();
+  await db.withTransactionAsync(async () => {
+    await db.runAsync("DELETE FROM texts WHERE book_id = ?", [id]);
+    await db.runAsync("DELETE FROM books WHERE id = ?", [id]);
+  });
+}
+
+export async function getTextCountForBook(bookId: string): Promise<number> {
+  const db = await getDb();
+  const row = await db.getFirstAsync<{ count: number }>(
+    "SELECT COUNT(*) as count FROM texts WHERE book_id = ?",
+    [bookId]
+  );
+  return row?.count ?? 0;
+}
+
+export async function listTextsForBook(bookId: string): Promise<SavedText[]> {
+  const db = await getDb();
+  const rows = await db.getAllAsync<any>(
+    "SELECT * FROM texts WHERE book_id = ? ORDER BY title COLLATE NOCASE ASC",
+    [bookId]
   );
   return rows.map(rowToText);
 }
 
-export async function getText(id: string): Promise<SavedText | null> {
+export async function getText(
+  id: string
+): Promise<(SavedText & { bookNames: NameTag[]; bookTitle: string }) | null> {
   const db = await getDb();
-  const row = await db.getFirstAsync<any>("SELECT * FROM texts WHERE id = ?", [
-    id,
-  ]);
-  return row ? rowToText(row) : null;
+  const row = await db.getFirstAsync<any>(
+    `SELECT texts.*, books.names AS book_names, books.title AS book_title
+     FROM texts JOIN books ON texts.book_id = books.id
+     WHERE texts.id = ?`,
+    [id]
+  );
+  if (!row) return null;
+  return {
+    id: row.id,
+    title: row.title,
+    content: row.content,
+    book_id: row.book_id,
+    createdAt: row.created_at,
+    bookNames: JSON.parse(row.book_names),
+    bookTitle: row.book_title,
+  };
 }
 
-export async function saveText(text: SavedText): Promise<void> {
+export async function saveText(text: {
+  id: string;
+  title: string;
+  content: string;
+  book_id: string;
+  createdAt: string;
+}): Promise<void> {
   const db = await getDb();
   await db.runAsync(
-    `INSERT INTO texts (id, title, content, names, created_at)
-     VALUES (?, ?, ?, ?, ?)
-     ON CONFLICT(id) DO UPDATE SET
-       title = excluded.title,
-       content = excluded.content,
-       names = excluded.names`,
-    [
-      text.id,
-      text.title,
-      text.content,
-      JSON.stringify(text.names),
-      text.createdAt,
-    ]
+    `INSERT OR REPLACE INTO texts (id, title, content, book_id, created_at)
+     VALUES (?, ?, ?, ?, ?)`,
+    [text.id, text.title, text.content, text.book_id, text.createdAt]
   );
 }
 
 export async function deleteText(id: string): Promise<void> {
   const db = await getDb();
   await db.runAsync("DELETE FROM texts WHERE id = ?", [id]);
+}
+
+export async function moveTextToBook(
+  textId: string,
+  newBookId: string
+): Promise<void> {
+  const db = await getDb();
+  await db.runAsync("UPDATE texts SET book_id = ? WHERE id = ?", [
+    newBookId,
+    textId,
+  ]);
 }
 
 export async function getNoPinyinChars(): Promise<string[]> {
@@ -207,8 +320,8 @@ export async function saveWord(entry: VocabEntry): Promise<void> {
   const db = await getDb();
   await db.runAsync(
     `INSERT OR REPLACE INTO vocabulary
-       (id, word, pinyin, definitions, source_text_id, source_text_title, saved_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+       (id, word, pinyin, definitions, source_text_id, source_text_title, source_book_title, saved_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       entry.id,
       entry.word,
@@ -216,6 +329,7 @@ export async function saveWord(entry: VocabEntry): Promise<void> {
       entry.definitions,
       entry.source_text_id,
       entry.source_text_title,
+      entry.source_book_title,
       entry.saved_at,
     ]
   );
@@ -233,12 +347,21 @@ export async function deleteWord(id: string): Promise<void> {
   await db.runAsync("DELETE FROM vocabulary WHERE id = ?", [id]);
 }
 
+function rowToBook(row: any): Book {
+  return {
+    id: row.id,
+    title: row.title,
+    names: JSON.parse(row.names),
+    createdAt: row.created_at,
+  };
+}
+
 function rowToText(row: any): SavedText {
   return {
     id: row.id,
     title: row.title,
     content: row.content,
-    names: JSON.parse(row.names),
+    book_id: row.book_id,
     createdAt: row.created_at,
   };
 }

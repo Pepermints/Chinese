@@ -7,7 +7,7 @@ import { ScreenFrame } from "../src/components/ScreenFrame";
 
 export default function MenuScreen() {
   return (
-    <ScreenFrame title="读中文" showBackButton={false} showBottomNav>
+    <ScreenFrame title="Read Mandarin" showBackButton={false} showBottomNav>
       <View style={{ paddingHorizontal: 24, paddingTop: 12 }}>
         <Text style={{ color: theme.inkSoft, fontSize: 13, marginTop: 4, marginBottom: 32 }}>
           Read Mandarin, one character at a time
@@ -17,8 +17,8 @@ export default function MenuScreen() {
           <NavCard
             icon={<BookOpen size={20} color={theme.seal} />}
             iconBg={theme.sealSoft}
-            title="我的文章"
-            subtitle="My texts — add, edit and read"
+            title="My texts"
+            subtitle="Add, edit and read your texts"
           />
         </Link>
 
@@ -26,7 +26,7 @@ export default function MenuScreen() {
           <NavCard
             icon={<Ban size={20} color={theme.jade} />}
             iconBg={theme.jadeSoft}
-            title="免拼音字"
+            title="Known characters"
             subtitle="Characters that don't need pinyin"
           />
         </Link>
@@ -35,7 +35,7 @@ export default function MenuScreen() {
           <NavCard
             icon={<BookMarked size={20} color={theme.ochre} />}
             iconBg={theme.ochreSoft}
-            title="我的词语"
+            title="Vocabulary"
             subtitle="Words saved while reading"
           />
         </Link>

@@ -7,73 +7,124 @@ import {
   View,
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
-import { Check, X } from "lucide-react-native";
-import { theme, NAME_COLORS } from "../../src/lib/theme";
+import { Check } from "lucide-react-native";
+import { theme } from "../../src/lib/theme";
 import { toSimplified } from "../../src/lib/simplify";
-import { getText, saveText, NameTag } from "../../src/db/database";
+import {
+  Book,
+  getBookByTitle,
+  getText,
+  listBooks,
+  moveTextToBook,
+  saveBook,
+  saveText,
+} from "../../src/db/database";
 import { ScreenFrame } from "../../src/components/ScreenFrame";
 
 export default function AddEditScreen() {
-  const { id } = useLocalSearchParams<{ id?: string }>();
+  const { id, bookId } = useLocalSearchParams<{ id?: string; bookId?: string }>();
   const editingId = id ?? null;
 
+  const [selectedBookId, setSelectedBookId] = useState<string | null>(null);
+  const [newBookName, setNewBookName] = useState("");
+  const [bookPickerMode, setBookPickerMode] = useState<"select" | "create">(
+    "select"
+  );
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [names, setNames] = useState<NameTag[]>([]);
-  const [nameInput, setNameInput] = useState("");
-  const [loaded, setLoaded] = useState(!editingId);
+  const [books, setBooks] = useState<Book[]>([]);
+  const [bookError, setBookError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [originalBookId, setOriginalBookId] = useState<string | null>(null);
+  const [originalCreatedAt, setOriginalCreatedAt] = useState<string | null>(
+    null
+  );
 
   useEffect(() => {
-    if (editingId) {
-      getText(editingId).then((t) => {
+    async function load() {
+      const loadedBooks = await listBooks();
+      setBooks(loadedBooks);
+
+      if (editingId) {
+        const t = await getText(editingId);
         if (t) {
           setTitle(t.title);
           setContent(t.content);
-          setNames(t.names);
+          setSelectedBookId(t.book_id);
+          setOriginalBookId(t.book_id);
+          setOriginalCreatedAt(t.createdAt);
         }
-        setLoaded(true);
-      });
-    }
-  }, [editingId]);
+      } else if (bookId) {
+        setSelectedBookId(bookId);
+        setBookPickerMode("select");
+      }
 
-  function addName() {
-    const n = nameInput.trim();
-    if (!n) return;
-    if (names.some((x) => x.name === n)) {
-      setNameInput("");
-      return;
+      setLoading(false);
     }
-    setNames([
-      ...names,
-      { name: n, color: NAME_COLORS[names.length % NAME_COLORS.length] },
-    ]);
-    setNameInput("");
-  }
-
-  function removeName(i: number) {
-    setNames(names.filter((_, idx) => idx !== i));
-  }
+    load();
+  }, [editingId, bookId]);
 
   const canSave = title.trim().length > 0 && content.trim().length > 0;
 
   async function handleSave() {
     if (!canSave) return;
+    setBookError(null);
+
+    let resolvedBookId: string | null = null;
+
+    if (bookPickerMode === "select" && selectedBookId) {
+      resolvedBookId = selectedBookId;
+    } else {
+      const trimmed = newBookName.trim();
+      if (!trimmed) {
+        setBookError("Please enter a book name");
+        return;
+      }
+      const found = await getBookByTitle(trimmed);
+      if (found) {
+        resolvedBookId = found.id;
+      } else {
+        const newBook: Book = {
+          id: "b-" + Date.now(),
+          title: trimmed,
+          names: [],
+          createdAt: new Date().toISOString(),
+        };
+        await saveBook(newBook);
+        resolvedBookId = newBook.id;
+      }
+    }
+
+    if (!resolvedBookId) {
+      setBookError("Please select or create a book");
+      return;
+    }
+
     const simplified = toSimplified(content);
+
+    if (editingId && originalBookId && resolvedBookId !== originalBookId) {
+      await moveTextToBook(editingId, resolvedBookId);
+    }
+
     await saveText({
       id: editingId ?? "t-" + Date.now(),
       title: title.trim(),
       content: simplified,
-      names,
-      createdAt: editingId ? "" /* preserved by ON CONFLICT UPDATE not touching it */ : new Date().toLocaleDateString(),
+      book_id: resolvedBookId,
+      createdAt:
+        editingId && originalCreatedAt
+          ? originalCreatedAt
+          : new Date().toISOString(),
     });
-    router.replace("/texts");
+
+    router.replace(`/books/${resolvedBookId}`);
   }
 
-  if (!loaded) return null;
+  if (loading) return null;
 
   return (
     <ScreenFrame
-      title={editingId ? "编辑文章" : "添加文章"}
+      title={editingId ? "Edit text" : "Add text"}
       showBackButton
       onBack={() => router.back()}
       rightAction={
@@ -83,67 +134,141 @@ export default function AddEditScreen() {
       }
     >
       <ScrollView contentContainerStyle={{ padding: 16 }}>
-        <Label>标题 Title</Label>
+        <Label>Book</Label>
+
+        {books.length === 0 && !editingId && (
+          <>
+            <Text style={{ color: theme.inkSoft, fontSize: 12, marginBottom: 8 }}>
+              Type a new book name to get started
+            </Text>
+            <TextInput
+              value={newBookName}
+              onChangeText={setNewBookName}
+              placeholder="e.g. The Dream of the Red Chamber"
+              style={inputStyle}
+            />
+          </>
+        )}
+
+        {books.length > 0 && (
+          <>
+            <View style={{ flexDirection: "row", gap: 8, marginBottom: 8 }}>
+              <Pressable
+                onPress={() => setBookPickerMode("select")}
+                style={{
+                  flex: 1,
+                  alignItems: "center",
+                  paddingVertical: 10,
+                  borderRadius: 12,
+                  backgroundColor:
+                    bookPickerMode === "select" ? theme.seal : theme.card,
+                  borderWidth: bookPickerMode === "select" ? 0 : 1,
+                  borderColor: theme.line,
+                }}
+              >
+                <Text
+                  style={{
+                    color: bookPickerMode === "select" ? "white" : theme.ink,
+                    fontSize: 13,
+                    fontWeight: "600",
+                  }}
+                >
+                  Select existing
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setBookPickerMode("create")}
+                style={{
+                  flex: 1,
+                  alignItems: "center",
+                  paddingVertical: 10,
+                  borderRadius: 12,
+                  backgroundColor:
+                    bookPickerMode === "create" ? theme.seal : theme.card,
+                  borderWidth: bookPickerMode === "create" ? 0 : 1,
+                  borderColor: theme.line,
+                }}
+              >
+                <Text
+                  style={{
+                    color: bookPickerMode === "create" ? "white" : theme.ink,
+                    fontSize: 13,
+                    fontWeight: "600",
+                  }}
+                >
+                  New book
+                </Text>
+              </Pressable>
+            </View>
+
+            {bookPickerMode === "select" ? (
+              <ScrollView
+                style={{
+                  maxHeight: 160,
+                  borderWidth: 1,
+                  borderColor: theme.line,
+                  borderRadius: 12,
+                  backgroundColor: theme.card,
+                }}
+                nestedScrollEnabled
+              >
+                {books.map((b, i) => (
+                  <Pressable
+                    key={b.id}
+                    onPress={() => setSelectedBookId(b.id)}
+                    style={{
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      paddingHorizontal: 12,
+                      paddingVertical: 10,
+                      borderBottomWidth: i === books.length - 1 ? 0 : 0.5,
+                      borderBottomColor: theme.line,
+                    }}
+                  >
+                    <Text style={{ color: theme.ink, fontSize: 14 }}>
+                      {b.title}
+                    </Text>
+                    {selectedBookId === b.id && (
+                      <Check size={16} color={theme.jade} />
+                    )}
+                  </Pressable>
+                ))}
+              </ScrollView>
+            ) : (
+              <TextInput
+                value={newBookName}
+                onChangeText={setNewBookName}
+                placeholder="New book title"
+                style={inputStyle}
+              />
+            )}
+          </>
+        )}
+
+        {bookError && (
+          <Text style={{ color: theme.seal, fontSize: 12, marginTop: 4 }}>
+            {bookError}
+          </Text>
+        )}
+
+        <Label>Title</Label>
         <TextInput
           value={title}
           onChangeText={setTitle}
-          placeholder="给文章起个名字"
+          placeholder="Give the text a title"
           style={inputStyle}
         />
 
-        <Label>正文 Text (简体 or 繁體 — auto-converted to simplified on save)</Label>
+        <Label>Text (simplified or traditional — auto-converted on save)</Label>
         <TextInput
           value={content}
           onChangeText={setContent}
-          placeholder="粘贴或输入中文文本…"
+          placeholder="Paste or type Chinese text…"
           multiline
           numberOfLines={7}
           style={[inputStyle, { height: 160, textAlignVertical: "top" }]}
         />
-
-        <Label>名字 Names to highlight (people, places…)</Label>
-        <View style={{ flexDirection: "row", gap: 8, marginBottom: 8 }}>
-          <TextInput
-            value={nameInput}
-            onChangeText={setNameInput}
-            onSubmitEditing={addName}
-            placeholder="例如：王芳"
-            style={[inputStyle, { flex: 1, marginBottom: 0 }]}
-          />
-          <Pressable
-            onPress={addName}
-            style={{
-              backgroundColor: theme.jade,
-              borderRadius: 12,
-              paddingHorizontal: 16,
-              justifyContent: "center",
-            }}
-          >
-            <Text style={{ color: "white" }}>添加</Text>
-          </Pressable>
-        </View>
-
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-          {names.map((n, i) => (
-            <View
-              key={i}
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 6,
-                backgroundColor: n.color.bg,
-                paddingHorizontal: 10,
-                paddingVertical: 6,
-                borderRadius: 999,
-              }}
-            >
-              <Text style={{ color: n.color.fg, fontSize: 12 }}>{n.name}</Text>
-              <Pressable onPress={() => removeName(i)}>
-                <X size={12} color={n.color.fg} />
-              </Pressable>
-            </View>
-          ))}
-        </View>
       </ScrollView>
     </ScreenFrame>
   );

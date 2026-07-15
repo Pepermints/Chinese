@@ -109,13 +109,13 @@ export function DefinitionPopup({
             }}
           >
             <Text style={{ textAlign: "center", color: "white", fontWeight: "600" }}>
-              {saved ? "✓ 已保存  Saved" : "保存词语 Save word"}
+              {saved ? "✓ Saved" : "Save word"}
             </Text>
           </Pressable>
 
           <Pressable onPress={onClose} style={{ paddingVertical: 14 }}>
             <Text style={{ textAlign: "center", color: theme.inkSoft }}>
-              关闭 Close
+              Close
             </Text>
           </Pressable>
         </Pressable>

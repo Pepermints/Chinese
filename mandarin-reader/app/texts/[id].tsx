@@ -1,10 +1,20 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Pressable, Text, TextInput, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import { router, useLocalSearchParams } from "expo-router";
-import { Tag, X } from "lucide-react-native";
-import { theme, NAME_COLORS } from "../../src/lib/theme";
-import { getText, saveText, getNoPinyinChars, setNoPinyinChars as saveNoPinyinChars, lookupWordAt, saveWord, SavedText, NameTag, DictionaryEntry } from "../../src/db/database";import { getPinyinForText, PinyinChar } from "../../src/lib/pinyin";
+import { Tag } from "lucide-react-native";
+import { theme } from "../../src/lib/theme";
+import {
+  getText,
+  getNoPinyinChars,
+  setNoPinyinChars as saveNoPinyinChars,
+  lookupWordAt,
+  saveWord,
+  SavedText,
+  NameTag,
+  DictionaryEntry,
+} from "../../src/db/database";
+import { getPinyinForText, PinyinChar } from "../../src/lib/pinyin";
 import { CharacterCell } from "../../src/components/CharacterCell";
 import { PinyinPopup } from "../../src/components/PinyinPopup";
 import { DefinitionPopup } from "../../src/components/DefinitionPopup";
@@ -12,15 +22,15 @@ import { ScreenFrame } from "../../src/components/ScreenFrame";
 
 type HighlightColor = { bg: string; fg: string } | null;
 
+type TextWithBook = SavedText & { bookNames: NameTag[]; bookTitle: string };
+
 export default function ReadingScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const [text, setText] = useState<SavedText | null>(null);
+  const [text, setText] = useState<TextWithBook | null>(null);
   const [noPinyinChars, setNoPinyinChars] = useState<string[]>([]);
   const [popup, setPopup] = useState<{ index: number; pc: PinyinChar } | null>(
     null
   );
-  const [namesBarOpen, setNamesBarOpen] = useState(false);
-  const [nameInput, setNameInput] = useState("");
   const [definitionPopup, setDefinitionPopup] = useState<{ word: string } | null>(
     null
   );
@@ -45,7 +55,9 @@ export default function ReadingScreen() {
   const highlight = useMemo(() => {
     if (!text) return [] as HighlightColor[];
     const result: HighlightColor[] = new Array(pinyinChars.length).fill(null);
-    const sorted = [...text.names].sort((a, b) => b.name.length - a.name.length);
+    const sorted = [...text.bookNames].sort(
+      (a, b) => b.name.length - a.name.length
+    );
     sorted.forEach((n: NameTag) => {
       let searchFrom = 0;
       while (true) {
@@ -90,33 +102,6 @@ export default function ReadingScreen() {
   return !noPinyinChars.includes(pc.char);
   }
 
-  function addName() {
-    if (!text) return;
-    const n = nameInput.trim();
-    if (!n) return;
-    if (text.names.some((x) => x.name === n)) {
-      setNameInput("");
-      return;
-    }
-    const nextText = {
-      ...text,
-      names: [
-        ...text.names,
-        { name: n, color: NAME_COLORS[text.names.length % NAME_COLORS.length] },
-      ],
-    };
-    setText(nextText);
-    saveText(nextText);
-    setNameInput("");
-  }
-
-  function removeName(i: number) {
-    if (!text) return;
-    const nextText = { ...text, names: text.names.filter((_, idx) => idx !== i) };
-    setText(nextText);
-    saveText(nextText);
-  }
-
   async function handleCharPress(globalIndex: number) {
     if (!text) return;
     const entry = await lookupWordAt(text.content, globalIndex);
@@ -133,93 +118,14 @@ export default function ReadingScreen() {
       onBack={() => router.back()}
       rightAction={
         <Pressable
-          onPress={() => setNamesBarOpen((o) => !o)}
-          style={{ padding: 8 }}
+          onPress={() => router.push(`/books/names?bookId=${text.book_id}`)}
+          style={{ padding: 8, alignItems: "center" }}
         >
-          <Tag
-            size={20}
-            color={
-              namesBarOpen || text.names.length > 0 ? theme.seal : theme.line
-            }
-          />
+          <Tag size={20} color={theme.ink} />
+          <Text style={{ fontSize: 9, color: theme.inkSoft }}>Names</Text>
         </Pressable>
       }
     >
-      {namesBarOpen && (
-        <View
-          style={{
-            paddingHorizontal: 16,
-            paddingTop: 12,
-            paddingBottom: 4,
-            borderBottomWidth: 1,
-            borderBottomColor: theme.line,
-          }}
-        >
-          <View style={{ flexDirection: "row", gap: 8, marginBottom: 8 }}>
-            <TextInput
-              value={nameInput}
-              onChangeText={setNameInput}
-              onSubmitEditing={addName}
-              placeholder="例如：王芳"
-              style={{
-                flex: 1,
-                backgroundColor: theme.card,
-                borderWidth: 1,
-                borderColor: theme.line,
-                borderRadius: 12,
-                paddingHorizontal: 12,
-                paddingVertical: 10,
-                color: theme.ink,
-                fontSize: 14,
-              }}
-            />
-            <Pressable
-              onPress={addName}
-              style={{
-                backgroundColor: theme.jade,
-                borderRadius: 12,
-                paddingHorizontal: 16,
-                justifyContent: "center",
-              }}
-            >
-              <Text style={{ color: "white" }}>添加</Text>
-            </Pressable>
-          </View>
-
-          {text.names.length > 0 && (
-            <View
-              style={{
-                flexDirection: "row",
-                flexWrap: "wrap",
-                gap: 8,
-                paddingBottom: 8,
-              }}
-            >
-              {text.names.map((n, i) => (
-                <View
-                  key={i}
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 6,
-                    backgroundColor: n.color.bg,
-                    paddingHorizontal: 10,
-                    paddingVertical: 6,
-                    borderRadius: 999,
-                  }}
-                >
-                  <Text style={{ color: n.color.fg, fontSize: 12 }}>
-                    {n.name}
-                  </Text>
-                  <Pressable onPress={() => removeName(i)}>
-                    <X size={12} color={n.color.fg} />
-                  </Pressable>
-                </View>
-              ))}
-            </View>
-          )}
-        </View>
-      )}
       <FlashList
         style={{ flex: 1 }}
         data={paragraphs}
@@ -260,16 +166,18 @@ export default function ReadingScreen() {
         char={popup?.pc.char ?? null}
         py={popup?.pc.py ?? null}
         tone={popup?.pc.tone ?? 0}
-        onAddToNoPinyin={async () => {
+        hidden={popup ? noPinyinChars.includes(popup.pc.char) : false}
+        onToggleHidden={async () => {
           if (!popup) return;
           const char = popup.pc.char;
-          if (!noPinyinChars.includes(char)) {
-          const next = [...noPinyinChars, char];
+          const isHidden = noPinyinChars.includes(char);
+          const next = isHidden
+            ? noPinyinChars.filter((c) => c !== char)
+            : [...noPinyinChars, char];
           setNoPinyinChars(next);
           await saveNoPinyinChars(next);
-        }
-        setPopup(null);
-    }}
+          setPopup(null);
+        }}
         onClose={() => setPopup(null)}
       />
 
@@ -288,6 +196,7 @@ export default function ReadingScreen() {
             definitions: definitionData.definitions ?? null,
             source_text_id: text.id,
             source_text_title: text.title,
+            source_book_title: text.bookTitle,
             saved_at: new Date().toISOString(),
           });
         }}

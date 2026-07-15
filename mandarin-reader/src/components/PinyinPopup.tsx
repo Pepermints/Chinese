@@ -7,7 +7,8 @@ type Props = {
   char: string | null;
   py: string | null;
   tone: number;
-  onAddToNoPinyin: () => void;
+  hidden: boolean;
+  onToggleHidden: () => void;
   onClose: () => void;
 };
 
@@ -16,7 +17,8 @@ export function PinyinPopup({
   char,
   py,
   tone,
-  onAddToNoPinyin,
+  hidden,
+  onToggleHidden,
   onClose,
 }: Props) {
   return (
@@ -45,29 +47,38 @@ export function PinyinPopup({
         >
           <View
             style={{
-              flexDirection: "row",
-              justifyContent: "center",
               alignItems: "center",
-              gap: 16,
               marginBottom: 20,
             }}
           >
-            <Text style={{ fontSize: 40, color: theme.ink }}>{char}</Text>
-            <View>
-              <Text
-                style={{
-                  fontSize: 18,
-                  fontWeight: "700",
-                  color: theme.toneColor(tone),
-                }}
-              >
-                {py ?? "—"}
-              </Text>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "center",
+                alignItems: "center",
+                gap: 16,
+              }}
+            >
+              <Text style={{ fontSize: 40, color: theme.ink }}>{char}</Text>
+              <View>
+                <Text
+                  style={{
+                    fontSize: 18,
+                    fontWeight: "700",
+                    color: theme.toneColor(tone),
+                  }}
+                >
+                  {py ?? "—"}
+                </Text>
+              </View>
             </View>
+            <Text style={{ fontSize: 12, color: theme.inkSoft, marginTop: 8 }}>
+              {hidden ? "Pinyin hidden" : "Pinyin visible"}
+            </Text>
           </View>
 
           <Pressable
-            onPress={onAddToNoPinyin}
+            onPress={onToggleHidden}
             style={{
               backgroundColor: theme.seal,
               borderRadius: 16,
@@ -76,16 +87,13 @@ export function PinyinPopup({
             }}
           >
             <Text style={{ textAlign: "center", color: "white", fontWeight: "600" }}>
-              Hide pinyin
-            </Text>
-            <Text style={{ textAlign: "center", color: "rgba(255,255,255,0.7)", fontSize: 12, marginTop: 2 }}>
-              Adds to 免拼音字 list
+              {hidden ? "Show pinyin" : "Hide pinyin"}
             </Text>
           </Pressable>
 
           <Pressable onPress={onClose} style={{ paddingVertical: 14 }}>
             <Text style={{ textAlign: "center", color: theme.inkSoft }}>
-              Cancel
+              Close
             </Text>
           </Pressable>
         </Pressable>

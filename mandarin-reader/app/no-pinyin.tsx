@@ -38,11 +38,11 @@ export default function NoPinyinScreen() {
   }
 
   return (
-    <ScreenFrame title="免拼音字" showBackButton onBack={() => router.back()}>
+    <ScreenFrame title="Known characters" showBackButton onBack={() => router.back()}>
       <View style={{ padding: 16 }}>
         <Text style={{ color: theme.inkSoft, fontSize: 12, marginBottom: 16 }}>
-          Characters in this list won't show pinyin in the reading view —
-          useful for words you already know well.
+          Characters in this list won't show pinyin while reading — useful
+          for characters you already know well.
         </Text>
 
         <View style={{ flexDirection: "row", gap: 8, marginBottom: 16 }}>
@@ -50,7 +50,7 @@ export default function NoPinyinScreen() {
             value={input}
             onChangeText={setInput}
             onSubmitEditing={addChars}
-            placeholder="example：的"
+            placeholder="Type characters, e.g. 的了是"
             style={{
               flex: 1,
               backgroundColor: theme.card,
@@ -71,7 +71,7 @@ export default function NoPinyinScreen() {
               justifyContent: "center",
             }}
           >
-            <Text style={{ color: "white" }}>add</Text>
+            <Text style={{ color: "white" }}>Add</Text>
           </Pressable>
         </View>
 

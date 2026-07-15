@@ -55,7 +55,7 @@ export function TextCard({ text, onOpen, onEdit, onDelete }: Props) {
         {confirming ? (
           <>
             <Text style={{ color: theme.seal, fontSize: 12, fontWeight: "600" }}>
-              Delete this article?
+              Delete this text?
             </Text>
             <View style={{ flexDirection: "row", gap: 8 }}>
               <Pressable
