@@ -14,6 +14,18 @@ This means that:
 ## Main needed improvements
 
 Bug: can't scroll on no-pinyin page 
+Add text view: the confirm check is too hidden - maybe put it at the botton with a more visible button?
+My texts view: when wanting to delete a book: clicking on delete -> buttons to confirm or cancel are outside the view 
+inside a book view: the timestamp isn't displayed correctly 
+inside a book view and insde a text view: the Names tag label called names is over 2 lines - I would like it in 1 line 
+
+When I click on a character and save it, sometimes I do mistakes. I need an undo button 
+
+Add name from reading a text view: put it back as a overlay instead of a separate page 
+
+I need to be able to select text in the reading a text view
+
+
 
 - book vocabulary is too difficult. I need a dictionnary
     - tap to translate works. to do: "save word" button doesn't do anything yet - think about where to save?
